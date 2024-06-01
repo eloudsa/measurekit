@@ -4,6 +4,8 @@ import 'package:vector_math/vector_math_64.dart' as vector;
 import 'package:collection/collection.dart';
 
 class MeasurePage extends StatefulWidget {
+  const MeasurePage({super.key});
+
   @override
   _MeasurePageState createState() => _MeasurePageState();
 }
@@ -18,6 +20,9 @@ class _MeasurePageState extends State<MeasurePage> {
   String? textNodeName;
   String? selectedNodeName;
   vector.Vector3? selectedNodePosition;
+  bool isCm = true; // To track the measurement unit
+  bool isMeasurementValid = false; // To track the validation state
+  double? currentMeasurement; // To store the current measurement value
 
   @override
   void dispose() {
@@ -28,20 +33,49 @@ class _MeasurePageState extends State<MeasurePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('Measure Sample'),
+          title: const Text('Measure with ARKit'),
         ),
         body: Stack(
           children: [
             ARKitSceneView(
               enableTapRecognizer: true,
               onARKitViewCreated: onARKitViewCreated,
+              enablePinchRecognizer: true,
             ),
             Positioned(
-              bottom: 16,
+              top: 16,
               right: 16,
-              child: FloatingActionButton(
-                onPressed: _clearPoints,
-                child: Icon(Icons.clear),
+              child: ToggleButtons(
+                color: Colors.white,
+                isSelected: [isCm, !isCm],
+                onPressed: (index) {
+                  setState(() {
+                    isCm = index == 0;
+                    _drawLineAndMeasure(); // Update the displayed measurement
+                  });
+                },
+                children: const [Text('cm'), Text('inch')],
+              ),
+            ),
+            Positioned(
+              bottom: 50,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FloatingActionButton(
+                    onPressed: _clearPoints,
+                    child: const Icon(Icons.clear),
+                  ),
+                  const SizedBox(width: 30),
+                  FloatingActionButton(
+                    onPressed: () {
+                      _validateMeasurement();
+                    },
+                    child: const Icon(Icons.check),
+                  ),
+                ],
               ),
             ),
           ],
@@ -88,7 +122,7 @@ class _MeasurePageState extends State<MeasurePage> {
       diffuse: ARKitMaterialProperty.color(Colors.blue),
     );
     final sphere = ARKitSphere(
-      radius: 0.003,
+      radius: 0.001,
       materials: [material],
     );
 
@@ -140,7 +174,7 @@ class _MeasurePageState extends State<MeasurePage> {
       diffuse: ARKitMaterialProperty.color(Colors.blue),
     );
     final sphere = ARKitSphere(
-      radius: 0.003,
+      radius: 0.001,
       materials: [material],
     );
     final node = ARKitNode(
@@ -173,7 +207,7 @@ class _MeasurePageState extends State<MeasurePage> {
       diffuse: ARKitMaterialProperty.color(color),
     );
     final sphere = ARKitSphere(
-      radius: 0.003,
+      radius: 0.001,
       materials: [material],
     );
     final node = ARKitNode(
@@ -211,7 +245,11 @@ class _MeasurePageState extends State<MeasurePage> {
 
   String _calculateDistanceBetweenPoints(vector.Vector3 A, vector.Vector3 B) {
     final length = A.distanceTo(B);
-    return '${(length * 100).toStringAsFixed(2)} cm';
+    final convertedLength = isCm ? length * 100 : length * 39.3701;
+    currentMeasurement = convertedLength; // Store the measurement
+    return isCm
+        ? '${convertedLength.toStringAsFixed(2)} cm'
+        : '${convertedLength.toStringAsFixed(2)} inches';
   }
 
   vector.Vector3 _getMiddleVector(vector.Vector3 A, vector.Vector3 B) {
@@ -253,6 +291,27 @@ class _MeasurePageState extends State<MeasurePage> {
     textNodeName = null;
     selectedNodeName = null;
     selectedNodePosition = null;
+    isMeasurementValid = false;
+    currentMeasurement = null;
+  }
+
+  void _validateMeasurement() {
+    if (currentMeasurement == null) {
+      return;
+    }
+
+    setState(() {
+      isMeasurementValid = true;
+    });
+    // Provide haptic feedback and visual confirmation here
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Measurement validated: ${currentMeasurement?.toStringAsFixed(2)} ${isCm ? "cm" : "inches"}'),
+        backgroundColor: Colors.green,
+        duration: const Duration(milliseconds: 750),
+      ),
+    );
   }
 
   String _generateNodeName() {

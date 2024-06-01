@@ -1,4 +1,5 @@
 import 'package:arkitsample/views/measure_page.dart';
+import 'package:arkitsample/views/measure_page2.dart';
 import 'package:flutter/material.dart';
 
 void main() {
