@@ -18,7 +18,6 @@ class _MeasurePageState extends State<MeasurePage> {
   String? textNodeName;
   String? selectedNodeName;
   vector.Vector3? selectedNodePosition;
-  double currentScale = 1.0; // Initial scale
 
   @override
   void dispose() {
@@ -31,26 +30,21 @@ class _MeasurePageState extends State<MeasurePage> {
         appBar: AppBar(
           title: const Text('Measure Sample'),
         ),
-        body: GestureDetector(
-          onScaleUpdate: (details) {
-            _handleZoom(details.scale);
-          },
-          child: Stack(
-            children: [
-              ARKitSceneView(
-                enableTapRecognizer: true,
-                onARKitViewCreated: onARKitViewCreated,
+        body: Stack(
+          children: [
+            ARKitSceneView(
+              enableTapRecognizer: true,
+              onARKitViewCreated: onARKitViewCreated,
+            ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: _clearPoints,
+                child: Icon(Icons.clear),
               ),
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: FloatingActionButton(
-                  onPressed: _clearPoints,
-                  child: Icon(Icons.clear),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 
@@ -103,7 +97,6 @@ class _MeasurePageState extends State<MeasurePage> {
       geometry: sphere,
       position: position,
       name: nodeName,
-      scale: vector.Vector3(currentScale, currentScale, currentScale),
     );
     arkitController.add(node);
 
@@ -154,7 +147,6 @@ class _MeasurePageState extends State<MeasurePage> {
       geometry: sphere,
       position: newPosition,
       name: nodeName,
-      scale: vector.Vector3(currentScale, currentScale, currentScale),
     );
     arkitController.add(node);
 
@@ -188,7 +180,6 @@ class _MeasurePageState extends State<MeasurePage> {
       geometry: sphere,
       position: currentPosition,
       name: nodeName,
-      scale: vector.Vector3(currentScale, currentScale, currentScale),
     );
     arkitController.add(node);
   }
@@ -207,7 +198,6 @@ class _MeasurePageState extends State<MeasurePage> {
       final lineNode = ARKitNode(
         geometry: line,
         name: lineNodeName,
-        scale: vector.Vector3(currentScale, currentScale, currentScale),
       );
       arkitController.add(lineNode);
 
@@ -267,37 +257,5 @@ class _MeasurePageState extends State<MeasurePage> {
 
   String _generateNodeName() {
     return DateTime.now().microsecondsSinceEpoch.toString();
-  }
-
-  void _handleZoom(double scale) {
-    setState(() {
-      currentScale =
-          scale.clamp(0.5, 2.0); // Clamping scale between 0.5 and 2.0
-    });
-
-    // Update the scale of all nodes
-    if (firstNodeName != null) {
-      arkitController.remove(firstNodeName!);
-      _addNode(firstPosition!, isFirst: true);
-    }
-    if (secondNodeName != null) {
-      arkitController.remove(secondNodeName!);
-      _addNode(secondPosition!, isFirst: false);
-    }
-    if (lineNodeName != null &&
-        firstPosition != null &&
-        secondPosition != null) {
-      arkitController.remove(lineNodeName!);
-      _drawLineAndMeasure();
-    }
-    if (textNodeName != null) {
-      arkitController.remove(textNodeName!);
-      if (firstPosition != null && secondPosition != null) {
-        final midPoint = _getMiddleVector(firstPosition!, secondPosition!);
-        final distance =
-            _calculateDistanceBetweenPoints(firstPosition!, secondPosition!);
-        _drawText(distance, midPoint);
-      }
-    }
   }
 }
